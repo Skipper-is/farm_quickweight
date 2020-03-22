@@ -17,20 +17,20 @@ function farm_quickweight_farm_quick_forms() {
 
 function farm_quickweight_form($form, &$form_state){
 	$system = farm_quantity_system_of_measurement();
-	
+
 	$default_units = 'kg';
 	if ($system == 'us'){
 		$default_units = 'lbs';
 	}
 	$default_measure = variable_get('farm_quick_weight_measure',$default_measure);
 	$default_units = variable_get('farm_quick_weight_units', $default_units);
-	
+
 	$form['weight'] = array(
 	'#type'=> 'fieldset',
 	'#title' => t('Record animal weights'),
 	'#description' => t('Use this form to record animal weights. An observation log will be created with the details filled in.'),
 	);
-	
+
 	$form['weight']['timestamp'] = array(
     '#type' => 'date_select',
     '#title' => t('Date'),
@@ -40,7 +40,7 @@ function farm_quickweight_form($form, &$form_state){
     '#default_value' => REQUEST_TIME,
     '#required' => TRUE,
   );
-	
+
 	$form['weight']['asset'] = array(
 	'#type'=>'textfield',
 	'#title' => t('Group/animal'),
@@ -48,15 +48,15 @@ function farm_quickweight_form($form, &$form_state){
 	'#autocomplete_path' => 'farm_asset/autocomplete/animal+group',
     '#required' => TRUE,
 	);
-	
-	
+
+
 	$form['weight']['quantity'] = array(
 	'#type' => 'textfield',
 	'#title' => t('Quantity'),
 	'#required'=> TRUE,
 	'#element_validate' => array('element_validate_number'),
 	);
-	
+
 	$form['weight']['units'] = array(
 	'#type' => 'textfield',
 	'#title' => t('Unit of measurement'),
@@ -65,16 +65,16 @@ function farm_quickweight_form($form, &$form_state){
 	'#default_value' => $default_units,
 	'#required' => TRUE,
 	);
-	
+
 	$form['weight']['submit'] = array(
 	'#type' => 'submit',
 	'#value' => t('Save weight'),
 	);
-	
+
 	return $form;
 }
 function farm_quickweight_form_validate($form, &$form_state){
-	
+
 	if (!empty($form_state['values']['asset'])){
 		$id = 0;
 		$matches = array();
@@ -100,28 +100,14 @@ function farm_quickweight_form_validate($form, &$form_state){
 }
 
 function farm_quickweight_form_submit($form, &$form_state){
-	$measure = 'weight';
 	$units = check_plain($form_state['values']['units']);
 	variable_set('farm_quick_weight_measure',$measure);
 	variable_set('farm_quick_weight_units',$units);
 	$timestamp = strtotime($form_state['values']['timestamp']);
 	$asset = $form_state['storage']['asset'];
 	$assets = array($asset);
-	$log_type = 'farm_observation';
-	
-	$log_name = t('Weight of @asset: @qty @units', array('@asset' => entity_label('farm_asset', $asset), '@qty'=> $form_state['values']['quantity'], '@units' => $form_state['values']['units']));
-	
-	$measurements = array(
-	array(
-	'measure' => $measure,
-	'value' => $form_state['values']['quantity'],
-	'units' => $units,
-	'label' => t('Weight'),
-	),
-	);
-	
-	$log = farm_quantity_log_create($log_type,$log_name, $timestamp, TRUE, $assets, $measurements);
-	
+  $qty = $form_state['values']['quantity'];
+  farm_livestock_weight_set($assets,$qty,$units, $timestamp);
 	if(function_exists('farm_quick_entity_link')){
 		farm_quick_entity_link('farm_quickweight_form', 'log', $log);
 	}
