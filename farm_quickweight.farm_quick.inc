@@ -78,7 +78,7 @@ function farm_quickweight_form_validate($form, &$form_state){
 	if (!empty($form_state['values']['asset'])){
 		$id = 0;
 		$matches = array();
-		$result = preg_match('/\\[id: ([0-9]+)\\]$/', $form_state['values']['asset'], $matches);
+		$result = preg_match('/\\[id: ([0-9]+)\\]/', $form_state['values']['asset'], $matches);
 		if (!empty($matches[$result])){
 			$id=$matches[$result];
 		}
@@ -100,13 +100,14 @@ function farm_quickweight_form_validate($form, &$form_state){
 }
 
 function farm_quickweight_form_submit($form, &$form_state){
-	$units = check_plain($form_state['values']['units']);
-	variable_set('farm_quick_weight_measure',$measure);
+	$qty = $form_state['values']['quantity'];
+  $units = $form_state['values']['units'];
+	variable_set('farm_quick_weight_measure',$qty);
 	variable_set('farm_quick_weight_units',$units);
 	$timestamp = strtotime($form_state['values']['timestamp']);
 	$asset = $form_state['storage']['asset'];
 	$assets = array($asset);
-  $qty = $form_state['values']['quantity'];
+
   farm_livestock_weight_set($assets,$qty,$units, $timestamp);
 	if(function_exists('farm_quick_entity_link')){
 		farm_quick_entity_link('farm_quickweight_form', 'log', $log);
