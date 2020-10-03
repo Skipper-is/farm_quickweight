@@ -1,8 +1,8 @@
-farm_quickweight
+Quick Weight Form
 =========
 
 A FarmOS quick form for animal weights.
-
+![Screenshot  of the module in action](https://github.com/Skipper-is/farm_quickweight/blob/master/screenshot.png)
 
 This module is an add-on for the [farmOS](http://drupal.org/project/farm)
 distribution.
