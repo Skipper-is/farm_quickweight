@@ -69,7 +69,40 @@ function farm_quickweight_form($form, &$form_state){
 	$form['weight']['submit'] = array(
 	'#type' => 'submit',
 	'#value' => t('Save weight'),
+  '#suffix' => '<br>',
 	);
+
+  $form['weight']['previous'] = array(
+    '#type' => 'fieldset',
+    '#title' => t("Previous Weights"),
+    '#prefix' => '<br>',
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
+  );
+
+  $assetList = entity_load('farm_asset');
+
+  foreach ($assetList as $asset){
+    if ($asset->archived == 0 && ($asset->type =='animal' || $asset->type == 'group' )){
+      $weight = farm_quickweight_getLast2Weights($asset);
+      if (!empty($weight)){
+
+        $dlwg = farm_quickweight_dlwg($weight);
+      $form['weight']['previous'][$weight['name']] = array(
+        '#markup' => '<strong>'.$weight['name'] . ': </strong>' . $dlwg,
+        '#prefix' => '<br>'
+      );
+
+      }
+
+    }
+  }
+
+
+
+
+
+  // $form['weight']['previous'][''];
 
 	return $form;
 }
@@ -112,4 +145,71 @@ function farm_quickweight_form_submit($form, &$form_state){
 	if(function_exists('farm_quick_entity_link')){
 		farm_quick_entity_link('farm_quickweight_form', 'log', $log);
 	}
+}
+
+function farm_quickweight_getLast2Weights($asset){
+  if (empty($asset->id)) {
+  return FALSE;
+}
+  $weight_list = array();
+  $query = farm_quantity_log_asset_query($asset->id,'weight', NULL, REQUEST_TIME, TRUE, 'farm_observation', FALSE);
+  $query->orderBy('ss_log.timestamp', 'DESC');
+  $query->orderBy('ss_log.id', 'DESC');
+  $query->range(0,2);
+  $results = $query->execute();
+  $resultIDs = $results->fetchCol();
+  if (count($resultIDs) > 1){
+    $weight_list['id'] = $asset->id;
+    $weight_list['name'] = $asset->name;
+    foreach($resultIDs as $logIDs){
+      $log = log_load($logIDs);
+      $log_data = farm_quantity_log_data($log);
+      $weight_list[] = array('id'=>$logIDs, 'data'=>$log_data, 'timestamp'=>$log->timestamp);
+
+    }
+    return $weight_list;
+  }else{
+    return FALSE;
+  }
+
+}
+
+function farm_quickweight_dlwg($weights){
+  if (empty($weights)){
+    return FALSE;
+  }
+  if ($weights[0]['data'][0]['units'] == $weights[1]['data']['0']['units']) {
+    //Check units are the same
+    $units = $weights[1]['data']['0']['units'];
+    $latest_weight = $weights[0];
+    $previous_weight = $weights[1];
+    $weigh_difference = $latest_weight['data'][0]['value'] - $previous_weight['data'][0]['value'];
+    $time_difference = $latest_weight['timestamp'] - $previous_weight['timestamp'];
+    $time_difference_days = round($time_difference/86400,2);
+    $dlwg = round($weigh_difference/$time_difference_days,3);
+
+    $date_format = 'D M Y';
+    $latest_log = log_load($latest_weight['id']);
+    $latest_log_uri= entity_uri('log', $latest_log);
+    $latest_log_date = date($date_format,$latest_weight['timestamp']);
+
+    $previous_log = log_load($previous_weight['id']);
+    $previous_log_uri = entity_uri('log',$previous_log);
+    $previous_log_date = date($date_format,$previous_weight['timestamp']);
+
+    $dlwg_text = $dlwg . ' ' . $units . '/' . t('Day');
+
+    $observed_text = t(
+            'observed between <a href="!previous_log_link">@previous_log_date</a> and <a href="!latest_log_link">@latest_log_date</a>',
+            array(
+              '!previous_log_link' => url($previous_log_uri['path']),
+              '@previous_log_date' => $previous_log_date,
+              '!latest_log_link' => url($latest_log_uri['path']),
+              '@latest_log_date' => $latest_log_date)
+          );
+
+    $markup = '<p><strong>' . t('Daily liveweight gain') . ':</strong> ' . $dlwg_text . ' (' . $observed_text . ')</p><br>';
+    return $markup;
+
+  }
 }
