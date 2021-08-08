@@ -188,7 +188,7 @@ function farm_quickweight_dlwg($weights){
     $time_difference_days = round($time_difference/86400,2);
     $dlwg = round($weigh_difference/$time_difference_days,3);
 
-    $date_format = 'D M Y';
+    $date_format = 'D  d M Y';
     $latest_log = log_load($latest_weight['id']);
     $latest_log_uri= entity_uri('log', $latest_log);
     $latest_log_date = date($date_format,$latest_weight['timestamp']);
